@@ -1,7 +1,7 @@
 import React from 'react';
 import './NavBar';
 import NavBar from './NavBar';
-import EventCard from './EventCard';
+import Main from './Main';
 
 class Header extends React.Component{
   render(){
@@ -13,22 +13,13 @@ class Header extends React.Component{
   }
 }
 
-class Main extends React.Component{
-  render(){
-      return(
-          <main className="container">
-            <EventCard />
-          </main>
-      )
-  }
-}
 
 class App extends React.Component{
   render(){
     return (
       <div className="App">
         <Header/>
-        <Main />
+        <Main userId={1}/>
       </div>
     )
   }
