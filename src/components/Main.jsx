@@ -49,46 +49,60 @@ class Main extends React.Component{
         await this.getEventList(state.page, state.sortType, state.sortMode, state.searchField, state.searchQuery);
         this.openEventInfo(state.selected)
     };
-    componentDidUpdate(){
+    async componentDidUpdate(){
         let state = this.parse(this.props.history.location.pathname)
         if(state.page !== this.state.page ||
             state.sortType !== this.state.sortType ||
             state.sortMode !== this.state.sortMode ||
             state.searchQuery !== this.state.searchQuery ||
-            state.searchField !== this.state.searchField ||
-            state.selected !== this.state.selected){
+            state.searchField !== this.state.searchField){
             console.log(state, this.state)
+            await this.getEventList(state.page, state.sortType, state.sortMode, state.searchField, state.searchQuery)
+        }
+        if(state.selected !== this.state.selected){
+            this.openEventInfo(state.selected)
         }
     }
     async getEventList(page=this.state.page, sortType=this.state.sortType, sortMode=this.state.sortMode, searchField=this.state.searchField, searchQuery=this.state.searchQuery){
+        console.log('alist')
+        let path = `/page/${page}/sortBy/${sortMode}${sortType}/keyword/${searchField}::${searchQuery}`;
+        if(this.props.history.location.pathname !== path){
+            this.props.history.location.pathname = path;
+            window.history.pushState({},'state', path);
+        }
+        window.scrollTo(0, 0)
         await fetch(`http://localhost:9000/api/events/page/${page}/sortBy/${sortMode}${sortType}/keyword/${searchField}::${searchQuery}`)
             .then(res => res.json())
             .then((result) => {
                 //console.log(result)
                 this.setState({
                     page: page,
-                    sortMode: sortMode,
                     sortType: sortType,
+                    sortMode: sortMode,
                     data: result,
                 });
             },
             (error) => {
                 console.log(error)
             });
-        window.history.pushState({page: this.state.page - 1},'state',`/page/${page}/sortBy/${sortMode}${sortType}/keyword/${searchField}::${searchQuery}`);
-        window.scrollTo(0, 0)
     };
     openEventInfo(index, e){
         if(index !== 0 ){
-            //this.state.selected = index;
+            console.log('event')
+            let path = `/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}/keyword/${this.state.searchField}::${this.state.searchQuery}/${index}`;
+            if(this.props.history.location.pathname !== path){
+                this.props.history.location.pathname = path;
+                window.history.pushState({},'state', path);
+            }
             this.setState({
                 selected: index,
                 currentEvent: this.state.data[index - 1],
             });
-            window.history.pushState({page: this.state.page - 1},'state',`/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}/keyword/${this.state.searchField}::${this.state.searchQuery}/${index}`);
         }else{
             this.setState({selected: 0})
-            window.history.pushState({page: this.state.page - 1},'state',`/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}/keyword/${this.state.searchField}::${this.state.searchQuery}`);
+            let path = `/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}/keyword/${this.state.searchField}::${this.state.searchQuery}`;
+            this.props.history.location.pathname = path;
+            window.history.pushState({},'state',path);
         }
     };
     lastEvent(){
@@ -101,18 +115,18 @@ class Main extends React.Component{
         this.openEventInfo(this.state.selected + 1, {})
     };
     lastPage(){
-        this.getEventList(this.state.page - 1);
+        this.getEventList(this.state.page - 1)
     };
     nextPage(){
-        this.getEventList(this.state.page + 1);
+        this.getEventList(this.state.page + 1)
     };
     handleChange(event){
         switch (event.target.id) {
             case "sortType":
-                this.getEventList(this.state.page, event.target.value, this.state.sortMode);
+                this.getEventList(1, event.target.value)
                 break;
             case "sortMode":
-                this.getEventList(this.state.page, this.state.sortType, event.target.value);
+                this.getEventList(1, this.state.sortType, event.target.value)
                 break;
             case "searchField":
                 this.setState({searchField: event.target.value});
@@ -169,12 +183,9 @@ class Main extends React.Component{
         }
     };
     doSearch(event){
-        this.setState({
-            page: 1,
-            selected: 0,
-        });
         event.preventDefault();
         this.getEventList(1);
+        this.closeEventInfo();
     };
     deleteEvent(index, e){
         let currentEvent = this.state.data[index]
