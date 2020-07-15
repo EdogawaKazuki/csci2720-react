@@ -16,6 +16,7 @@ class Event extends React.Component{
         this.nextPage = this.nextPage.bind(this);
         this.lastPage = this.lastPage.bind(this);
         this.addComment = this.addComment.bind(this);
+        this.deleteComment = this.deleteComment.bind(this);
     };
     componentDidMount(){
         if(this.props.currentEvent.length){
@@ -26,7 +27,7 @@ class Event extends React.Component{
         }
     };
     componentDidUpdate(){
-        if(this.state.currentEvent != this.props.currentEvent){
+        if(this.state.currentEvent !== this.props.currentEvent){
             this.setState({
                 currentEvent: this.props.currentEvent,
                 page: 1,
@@ -82,6 +83,7 @@ class Event extends React.Component{
             .then(res => res.json())
             .then(result => {
                 //console.log(result)
+                this.setState({newComment: ''})
                 this.getCommentList(1);
             });
     };
@@ -94,12 +96,16 @@ class Event extends React.Component{
                 //console.log(result)
                 this.getCommentList(1);
             });
+    };
+    likeEvent(){
+        
     }
     render(){
         return(
             <>
             <div className="card-body">
                 <h3 className="card-title">{this.props.currentEvent.event_summary}</h3>
+                <button className="btn btn-danger m-2 float-right" onClick={this.likeEvent}>Like</button>
                 <p className="card-text">Organizer: {this.props.currentEvent.event_org}</p>
                 <p className="card-text">Location: {this.props.currentEvent.event_location}</p>
                 <p className="card-text small">Date: {this.props.currentEvent.event_date}</p>
@@ -111,7 +117,7 @@ class Event extends React.Component{
                                     <div className="media-body">
                                         <p>{comment.content}</p>
                                         <small className="text-muted font-italic">
-                                            <p>Name: {comment.userId} Date: {comment.date} {comment.userId == this.props.userId ? <button className="btn btn-sm btn-danger float-right" onClick={this.deleteComment.bind(this, comment.commentId)}>Delete</button> : ''}</p>
+                                            <p>Name: {comment.userId} Date: {comment.date} {comment.userId === this.props.userId ? <button className="btn btn-sm btn-danger float-right" onClick={this.deleteComment.bind(this, comment.commentId)}>Delete</button> : ''}</p>
                                         </small>
                                     </div>
                                 </div>

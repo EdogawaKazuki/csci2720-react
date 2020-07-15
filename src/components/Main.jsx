@@ -1,11 +1,13 @@
 import React from 'react'
 import Event from './Event'
+import { withRouter } from 'react-router-dom'
+
 
 class Main extends React.Component{
     constructor(props){
         super(props);
         this.state = {
-            selected: -1,
+            selected: 0,
             data: [],
             currentEvent: {},
             page: 1,
@@ -13,6 +15,8 @@ class Main extends React.Component{
             sortMode: '',
             searchQuery: '',
             searchField: 'event_summary',
+            focusEdit: false,
+            flushing: false,
         };
         this.handleChange = this.handleChange.bind(this);
         this.getEventList = this.getEventList.bind(this);
@@ -22,81 +26,143 @@ class Main extends React.Component{
         this.lastEvent = this.lastEvent.bind(this);
         this.closeEventInfo = this.closeEventInfo.bind(this);
         this.nextEvent = this.nextEvent.bind(this);
+        this.deleteEvent = this.deleteEvent.bind(this);
+        this.openEditForm = this.openEditForm.bind(this);
+        this.submitEvent = this.submitEvent.bind(this);
+        this.flushData = this.flushData.bind(this);
     };
-    componentDidMount(){
-        this.getEventList(this.state.page, this.state.sortType, this.state.sortMode);
+    parse(url){
+        let params = url.split('/');
+        return {
+            page: params[2] - 0 || 1,
+            sortMode: params[4] ? (params[4][0] === '-' ? '-' : '') : '',
+            sortType: params[4] ? (params[4][0] === '-' ? params[4].slice(1) : params[4]) : 'summary',
+            searchField: params[6] ? params[6].split('::')[0] : 'summary',
+            searchQuery: params[6] ? (params[6].split('::')[1] || '') : '',
+            selected: params[7] - 0 || 0,
+        }
     };
-    getEventList(page=this.state.page, sortType=this.state.sortType, sortMode=this.state.sortMode, searchField=this.state.searchField, searchQuery=this.state.searchQuery){
-        console.log({
-            page: page,
-            sortType: sortType,
-            sortMode: sortMode,
-            searchField: searchField,
-            searchQuery: searchQuery,
-        })
-        fetch(`http://localhost:9000/api/events/page/${page}/sortBy/${sortMode}${sortType}/keyword/${searchField}::${searchQuery}`)
+    async componentDidMount(){
+        let state = this.parse(this.props.history.location.pathname)
+        console.log(state)
+        this.setState(state)
+        await this.getEventList(state.page, state.sortType, state.sortMode, state.searchField, state.searchQuery);
+        this.openEventInfo(state.selected)
+    };
+    componentDidUpdate(){
+        let state = this.parse(this.props.history.location.pathname)
+        if(state.page !== this.state.page ||
+            state.sortType !== this.state.sortType ||
+            state.sortMode !== this.state.sortMode ||
+            state.searchQuery !== this.state.searchQuery ||
+            state.searchField !== this.state.searchField ||
+            state.selected !== this.state.selected){
+            console.log(state, this.state)
+        }
+    }
+    async getEventList(page=this.state.page, sortType=this.state.sortType, sortMode=this.state.sortMode, searchField=this.state.searchField, searchQuery=this.state.searchQuery){
+        await fetch(`http://localhost:9000/api/events/page/${page}/sortBy/${sortMode}${sortType}/keyword/${searchField}::${searchQuery}`)
             .then(res => res.json())
             .then((result) => {
-                console.log(result)
+                //console.log(result)
                 this.setState({
+                    page: page,
+                    sortMode: sortMode,
+                    sortType: sortType,
                     data: result,
                 });
             },
             (error) => {
                 console.log(error)
             });
+        window.history.pushState({page: this.state.page - 1},'state',`/page/${page}/sortBy/${sortMode}${sortType}/keyword/${searchField}::${searchQuery}`);
         window.scrollTo(0, 0)
     };
     openEventInfo(index, e){
-        if(index !== -1){
+        if(index !== 0 ){
             //this.state.selected = index;
             this.setState({
                 selected: index,
-                currentEvent: this.state.data[index],
+                currentEvent: this.state.data[index - 1],
             });
-            window.history.pushState({page: this.state.page - 1},'page',`/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}/${index}`);
+            window.history.pushState({page: this.state.page - 1},'state',`/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}/keyword/${this.state.searchField}::${this.state.searchQuery}/${index}`);
         }else{
-            this.setState({selected: -1})
-            window.history.pushState({page: this.state.page - 1},'page',`/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}`);
+            this.setState({selected: 0})
+            window.history.pushState({page: this.state.page - 1},'state',`/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}/keyword/${this.state.searchField}::${this.state.searchQuery}`);
         }
-        console.log(index, this.state.selected, e.target);
     };
     lastEvent(){
         this.openEventInfo(this.state.selected - 1, {})
     };
     closeEventInfo(){
-        this.openEventInfo(-1, {})
+        this.openEventInfo(0, {})
     };
     nextEvent(){
         this.openEventInfo(this.state.selected + 1, {})
     };
     lastPage(){
         this.getEventList(this.state.page - 1);
-        window.history.pushState({page: this.state.page - 1},'page',`/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}`);
-        this.setState({page: this.state.page - 1});
     };
     nextPage(){
         this.getEventList(this.state.page + 1);
-        window.history.pushState({page: this.state.page + 1},'page',`/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}`);
-        this.setState({page: this.state.page + 1});
     };
     handleChange(event){
         switch (event.target.id) {
             case "sortType":
                 this.getEventList(this.state.page, event.target.value, this.state.sortMode);
-                this.setState({sortType: event.target.value});
-                window.history.pushState({page: this.state.page},'page',`/page/${this.state.page}/sortBy/${this.state.sortMode}${event.target.value}`);        
                 break;
             case "sortMode":
                 this.getEventList(this.state.page, this.state.sortType, event.target.value);
-                this.setState({sortMode: event.target.value});
-                window.history.pushState({page: this.state.page},'page',`/page/${this.state.page}/sortBy/${event.target.value}${this.state.sortType}`);
                 break;
             case "searchField":
                 this.setState({searchField: event.target.value});
                 break;
             case "searchQuery":
                 this.setState({searchQuery: event.target.value});
+                break;
+            case "summary":
+                this.setState({
+                    currentEvent: {
+                        event_summary: event.target.value,
+                        event_org: this.state.currentEvent.event_org,
+                        event_date: this.state.currentEvent.event_date,
+                        event_location: this.state.currentEvent.event_location,
+                        event_id: this.state.currentEvent.event_id,
+                    }
+                });
+                break;
+            case "date":
+                this.setState({
+                    currentEvent: {
+                        event_summary: this.state.currentEvent.event_summary,
+                        event_org: this.state.currentEvent.event_org,
+                        event_date: event.target.value,
+                        event_location: this.state.currentEvent.event_location,
+                        event_id: this.state.currentEvent.event_id,
+                    }
+                });
+                break;
+            case "org":
+                this.setState({
+                    currentEvent: {
+                        event_summary: this.state.currentEvent.event_summary,
+                        event_org: event.target.value,
+                        event_date: this.state.currentEvent.event_date,
+                        event_location: this.state.currentEvent.event_location,
+                        event_id: this.state.currentEvent.event_id,
+                    }
+                });
+                break;
+            case "loc":
+                this.setState({
+                    currentEvent: {
+                        event_summary: this.state.currentEvent.event_summary,
+                        event_org: this.state.currentEvent.event_org,
+                        event_date: this.state.currentEvent.event_date,
+                        event_location: event.target.value,
+                        event_id: this.state.currentEvent.event_id,
+                    }
+                });
                 break;
             default:
                 break;
@@ -105,10 +171,69 @@ class Main extends React.Component{
     doSearch(event){
         this.setState({
             page: 1,
-            selected: -1,
+            selected: 0,
         });
         event.preventDefault();
         this.getEventList(1);
+    };
+    deleteEvent(index, e){
+        let currentEvent = this.state.data[index]
+        let eventId = currentEvent.event_id;
+        console.log(eventId);
+        //console.log(requestOptions)
+        fetch(`http://localhost:9000/api/event/${eventId}`, {method: 'DELETE'})
+            .then(res => res.json())
+            .then(result => {
+                //console.log(result)
+                this.getEventList(1);
+            });
+    };
+    openEditForm(index, e){
+        if(typeof index == 'number'){
+            this.setState({currentEvent: this.state.data[index]})
+            this.setState({focusEdit: 'Edit'})
+        }else{
+            this.setState({
+                currentEvent: {
+                    event_summary: '',
+                    event_org: '',
+                    event_date: '',
+                    event_location: '',
+                    event_id: -1,
+                }
+            })
+            this.setState({focusEdit: 'New'})
+        }
+    };
+    submitEvent(){
+        let method = '';
+        if(this.state.focusEdit === 'New'){
+            method = 'POST';
+        }else if(this.state.focusEdit === 'Edit'){
+            method = 'PUT'
+        }
+        let requestOptions = {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(this.state.currentEvent)
+        };
+        console.log(requestOptions)
+        fetch(`http://localhost:9000/api/event`, requestOptions)
+            .then(res => res.json())
+            .then(result => {
+                //console.log(result)
+                this.getEventList(1);
+            });
+    };
+    async flushData(){
+        this.setState({flushing: true})
+        await fetch(`http://localhost:9000/api/event`)
+            .then(res => res.json())
+            .then(result => {
+                //console.log(result)
+        });
+        await this.getEventList(1);
+        this.setState({flushing: false})
     };
     render(){
         return(
@@ -129,7 +254,7 @@ class Main extends React.Component{
                     </div>
                 </form>
             </nav>
-            <div style={{display: this.state.selected === -1 ? 'block' : 'none'}}>
+            <div style={{display: this.state.selected === 0 ? 'block' : 'none'}}>
                 <nav className="navbar navbar-light navbar-expand bg-light justify-content-end">
                     <span className="small mr-2">Sort By</span>
                     <ul className="navbar-nav mr-2">
@@ -148,15 +273,26 @@ class Main extends React.Component{
                             </select>
                         </li>
                     </ul>
+                    <button className="btn btn-primary mr-2" onClick={this.openEditForm} data-toggle="modal" data-target="#openEditFormForm">New Event</button>
+                    <button className="btn btn-success" onClick={this.flushData} disabled={this.state.flushing}>{this.state.flushing? <span className="spinner-border spinner-border-sm"></span> : ''} Flush Data</button>
                 </nav>              
                 <ul className="list-group my-2">
                     {this.state.data.map((event, index) => (
-                        <li className="list-group-item" key={index} onClick={(e) => this.openEventInfo(index, e)}>
+                        <li className="list-group-item" key={index} id={index}>
                             <div className="card-body">
-                                <h5 className="card-title">{event.event_summary}</h5>
-                                <p className="card-text">Organizer: {event.event_org}</p>
-                                <p className="card-text">Location: {event.event_location}</p>
-                                <p className="card-text small">Date: {event.event_date}</p>
+                                <div className="row">
+                                    <div className="col-10">
+                                        <button className="btn btn-lg btn-outline-dark" onClick={(e) => this.openEventInfo(index + 1, e)}>{event.event_summary}</button>
+                                        <p className="card-text">Organizer: {event.event_org}</p>
+                                        <p className="card-text">Location: {event.event_location}</p>
+                                        <p className="card-text small">Date: {event.event_date}</p>
+                                    </div>
+                                    <div className="col-2">
+                                        <button className="btn btn-info m-2" onClick={(e) => this.openEditForm(index, e)} data-toggle="modal" data-target="#openEditFormForm">Edit</button>
+                                        <br/>
+                                        <button className="btn btn-danger m-2" onClick={(e) => this.deleteEvent(index, e)}>Delete</button>
+                                    </div>
+                                </div>
                             </div>
                         </li>
                     ))}
@@ -166,10 +302,10 @@ class Main extends React.Component{
                     <button className="btn btn-primary float-right" disabled={this.state.data.length < 10} onClick={this.nextPage}>&raquo;</button>
                 </nav>
             </div>
-            <div style={{display: this.state.selected === -1 ? 'none' : 'block', height: '100vh'}} >
+            <div style={{display: this.state.selected === 0 ? 'none' : 'block', height: '100vh'}} >
                 <div className="row h-100 bg-secondary">
                     <div className="col-2 align-self-center text-center">
-                        <button className="btn" disabled={this.state.selected === 0} onClick={this.lastEvent}>
+                        <button className="btn" disabled={this.state.selected === 1} onClick={this.lastEvent}>
                             <svg width="100%" height="100%" viewBox="0 0 24 24">
                                 <path d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z"></path>
                             </svg>
@@ -179,7 +315,7 @@ class Main extends React.Component{
                                 <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path>
                             </svg>
                         </button>
-                        <button className="btn" disabled={this.state.selected === 9} onClick={this.nextEvent}>
+                        <button className="btn" disabled={this.state.selected === 10} onClick={this.nextEvent}>
                             <svg width="100%" height="100%" viewBox="0 0 24 24">
                                 <path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path>
                             </svg>
@@ -190,9 +326,45 @@ class Main extends React.Component{
                     </div>
                 </div>
             </div>
+            <div className="modal fade" role="dialog" id="openEditFormForm">
+                <div className="modal-dialog" role="document">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h5 className="modal-title">{`${this.state.focusEdit} Event`}</h5>
+                            <button type="button" className="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <form>
+                                <div className="form-group">
+                                    <label htmlFor="summary">Summary</label>
+                                    <textarea type="text" name="summary" id="summary" className="form-control" placeholder="Summary" rows="2" value={this.state.currentEvent.event_summary} onChange={this.handleChange}></textarea>
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="org">Organizer</label>
+                                    <textarea type="text" name="org" id="org" className="form-control" placeholder="Organizer" rows="2" value={this.state.currentEvent.event_org} onChange={this.handleChange}></textarea>
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="date">Date</label>
+                                    <textarea type="text" name="date" id="date" className="form-control" placeholder="15 July 2020" rows="2" value={this.state.currentEvent.event_date} onChange={this.handleChange}></textarea>
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="loc">Location</label>
+                                    <textarea type="text" name="loc" id="loc" className="form-control" placeholder="Location" rows="2" value={this.state.currentEvent.event_location} onChange={this.handleChange}></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div className="modal-footer">
+                            <button type="button" className="btn btn-primary" onClick={this.submitEvent} data-dismiss="modal">Save changes</button>
+                            <button type="button" className="btn btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>)
     };
 }
 
 
-export default Main;
+export default withRouter(Main);
