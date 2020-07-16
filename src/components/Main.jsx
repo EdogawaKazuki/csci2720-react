@@ -54,6 +54,7 @@ class Main extends React.Component{
         if(state.page !== this.state.page ||
             state.sortType !== this.state.sortType ||
             state.sortMode !== this.state.sortMode ||
+            state.searchQuery !== this.state.searchQuery ||
             state.searchField !== this.state.searchField){
             console.log(state, this.state)
             await this.getEventList(state.page, state.sortType, state.sortMode, state.searchField, state.searchQuery)
@@ -83,6 +84,8 @@ class Main extends React.Component{
                     sortType: sortType,
                     sortMode: sortMode,
                     data: result,
+                    searchField: searchField,
+                    searchQuery: searchQuery
                 });
             },
             (error) => {
@@ -141,10 +144,12 @@ class Main extends React.Component{
                 this.getEventList(1, this.state.sortType, event.target.value)
                 break;
             case "searchField":
-                this.setState({searchField: event.target.value});
+                this.getEventList(1, this.state.sortType, this.state.sortMode, event.target.value)
+                //this.setState({searchField: event.target.value});
                 break;
             case "searchQuery":
-                this.setState({searchQuery: event.target.value});
+                this.getEventList(1, this.state.sortType, this.state.sortMode, this.state.searchField, event.target.value)
+                //this.setState({searchQuery: event.target.value});
                 break;
             case "summary":
                 this.setState({
