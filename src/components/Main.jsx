@@ -1,6 +1,6 @@
 import React from 'react'
 import Event from './Event'
-import { withRouter } from 'react-router-dom'
+import { withRouter, Redirect } from 'react-router-dom'
 
 
 class Main extends React.Component{
@@ -34,12 +34,12 @@ class Main extends React.Component{
     parse(url){
         let params = url.split('/');
         return {
-            page: params[2] - 0 || 1,
-            sortMode: params[4] ? (params[4][0] === '-' ? '-' : '') : '',
-            sortType: params[4] ? (params[4][0] === '-' ? params[4].slice(1) : params[4]) : 'summary',
-            searchField: params[6] ? params[6].split('::')[0] : 'summary',
-            searchQuery: params[6] ? (params[6].split('::')[1] || '') : '',
-            selected: params[7] - 0 || 0,
+            page: params[3] - 0 || 1,
+            sortMode: params[5] ? (params[5][0] === '-' ? '-' : '') : '',
+            sortType: params[5] ? (params[5][0] === '-' ? params[5].slice(1) : params[5]) : 'event_summary',
+            searchField: params[7] ? params[7].split('::')[0] : 'event_summary',
+            searchQuery: params[7] ? (params[7].split('::')[1] || '') : '',
+            selected: params[8] - 0 || 0,
         }
     };
     async componentDidMount(){
@@ -65,16 +65,20 @@ class Main extends React.Component{
     }
     async getEventList(page=this.state.page, sortType=this.state.sortType, sortMode=this.state.sortMode, searchField=this.state.searchField, searchQuery=this.state.searchQuery){
         console.log('alist')
-        let path = `/page/${page}/sortBy/${sortMode}${sortType}/keyword/${searchField}::${searchQuery}`;
+        let path = `/event/page/${page}/sortBy/${sortMode}${sortType}/keyword/${searchField}::${searchQuery}`;
         if(this.props.history.location.pathname !== path){
             this.props.history.location.pathname = path;
             window.history.pushState({},'state', path);
         }
         window.scrollTo(0, 0)
-        await fetch(`http://localhost:9000/api/events/page/${page}/sortBy/${sortMode}${sortType}/keyword/${searchField}::${searchQuery}`)
+        await fetch(`http://localhost:9000/api/events/page/${page}/sortBy/${sortMode}${sortType}/keyword/${searchField}::${searchQuery}`, {credentials: 'include'})
             .then(res => res.json())
             .then((result) => {
-                //console.log(result)
+                console.log(result)
+                if(result.err){
+                    sessionStorage.setItem('LoginStatus', false);
+                    this.forceUpdate();
+                }
                 this.setState({
                     page: page,
                     sortType: sortType,
@@ -192,7 +196,7 @@ class Main extends React.Component{
         let eventId = currentEvent.event_id;
         console.log(eventId);
         //console.log(requestOptions)
-        fetch(`http://localhost:9000/api/event/${eventId}`, {method: 'DELETE'})
+        fetch(`http://localhost:9000/api/event/${eventId}`, {method: 'DELETE', credentials: 'include' })
             .then(res => res.json())
             .then(result => {
                 //console.log(result)
@@ -226,7 +230,8 @@ class Main extends React.Component{
         let requestOptions = {
             method: method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(this.state.currentEvent)
+            body: JSON.stringify(this.state.currentEvent),
+            credentials: 'include' 
         };
         console.log(requestOptions)
         fetch(`http://localhost:9000/api/event`, requestOptions)
@@ -238,7 +243,7 @@ class Main extends React.Component{
     };
     async flushData(){
         this.setState({flushing: true})
-        await fetch(`http://localhost:9000/api/event`)
+        await fetch(`http://localhost:9000/api/event`, {credentials: 'include' })
             .then(res => res.json())
             .then(result => {
                 //console.log(result)
@@ -247,134 +252,138 @@ class Main extends React.Component{
         this.setState({flushing: false})
     };
     render(){
-        return(
-        <div>
-            <nav className="navbar navbar-light navbar-expand bg-light">
-                <form className="form-inline input-group mr-2" onSubmit={this.doSearch}>
-                    <div className="input-group-prepend mr-2">
-                        <select id="searchField" className="form-control" onChange={this.handleChange} value={this.state.searchField}>
-                            <option value="event_summary">Summary</option>
-                            <option value="event_date">Date</option>
-                            <option value="event_org">Organizer</option>
-                            <option value="event_location">Location</option>
-                        </select>
-                    </div>
-                    <input id="searchQuery" className="form-control rounded-left" type="text" placeholder="Search" value={this.state.searchQuery} onChange={this.handleChange} />
-                    <div className="input-group-append">
-                        <button className="btn btn-outline-success" type="button" onClick={this.doSearch}>Search</button>
-                    </div>
-                </form>
-            </nav>
-            <div style={{display: this.state.selected === 0 ? 'block' : 'none'}}>
-                <nav className="navbar navbar-light navbar-expand bg-light justify-content-end">
-                    <span className="small mr-2">Sort By</span>
-                    <ul className="navbar-nav mr-2">
-                        <li className="nav-item mr-2">
-                            <select id="sortType" className="form-control-sm" onChange={this.handleChange} value={this.state.sortType}>
-                                <option value="event_summary">Summary</option>
-                                <option value="event_date">Date</option>
-                                <option value="event_org">Organizer</option>
-                                <option value="event_location">Location</option>
-                            </select>
-                        </li>
-                        <li className="nav-item">
-                            <select id="sortMode" className="form-control-sm" onChange={this.handleChange} value={this.state.sortMode}>
-                                <option value="-">Dsc</option>
-                                <option value="">Asc</option>
-                            </select>
-                        </li>
-                    </ul>
-                    <button className="btn btn-primary mr-2" onClick={this.openEditForm} data-toggle="modal" data-target="#openEditFormForm">New Event</button>
-                    <button className="btn btn-success" onClick={this.flushData} disabled={this.state.flushing}>{this.state.flushing? <span className="spinner-border spinner-border-sm"></span> : ''} Flush Data</button>
-                </nav>              
-                <ul className="list-group my-2">
-                    {this.state.data.map((event, index) => (
-                        <li className="list-group-item" key={index} id={index}>
-                            <div className="card-body">
-                                <div className="row">
-                                    <div className="col-10">
-                                        <button className="btn btn-lg btn-outline-dark" onClick={(e) => this.openEventInfo(index + 1, e)}>{event.event_summary}</button>
-                                        <p className="card-text">Organizer: {event.event_org}</p>
-                                        <p className="card-text">Location: {event.event_location}</p>
-                                        <p className="card-text small">Date: {event.event_date}</p>
+        if(sessionStorage.getItem('LoginStatus') === 'false'){
+            return <Redirect to='/login' />
+        }else{
+            return(
+                <div>
+                    <nav className="navbar navbar-light navbar-expand bg-light">
+                        <form className="form-inline input-group mr-2" onSubmit={this.doSearch}>
+                            <div className="input-group-prepend mr-2">
+                                <select id="searchField" className="form-control" onChange={this.handleChange} value={this.state.searchField}>
+                                    <option value="event_summary">Summary</option>
+                                    <option value="event_date">Date</option>
+                                    <option value="event_org">Organizer</option>
+                                    <option value="event_location">Location</option>
+                                </select>
+                            </div>
+                            <input id="searchQuery" className="form-control rounded-left" type="text" placeholder="Search" value={this.state.searchQuery} onChange={this.handleChange} />
+                            <div className="input-group-append">
+                                <button className="btn btn-outline-success" type="button" onClick={this.doSearch}>Search</button>
+                            </div>
+                        </form>
+                    </nav>
+                    <div style={{display: this.state.selected === 0 ? 'block' : 'none'}}>
+                        <nav className="navbar navbar-light navbar-expand bg-light justify-content-end">
+                            <span className="small mr-2">Sort By</span>
+                            <ul className="navbar-nav mr-2">
+                                <li className="nav-item mr-2">
+                                    <select id="sortType" className="form-control-sm" onChange={this.handleChange} value={this.state.sortType}>
+                                        <option value="event_summary">Summary</option>
+                                        <option value="event_date">Date</option>
+                                        <option value="event_org">Organizer</option>
+                                        <option value="event_location">Location</option>
+                                    </select>
+                                </li>
+                                <li className="nav-item">
+                                    <select id="sortMode" className="form-control-sm" onChange={this.handleChange} value={this.state.sortMode}>
+                                        <option value="-">Dsc</option>
+                                        <option value="">Asc</option>
+                                    </select>
+                                </li>
+                            </ul>
+                            <button className="btn btn-primary mr-2" onClick={this.openEditForm} data-toggle="modal" data-target="#openEditFormForm">New Event</button>
+                            <button className="btn btn-success" onClick={this.flushData} disabled={this.state.flushing}>{this.state.flushing? <span className="spinner-border spinner-border-sm"></span> : ''} Flush Data</button>
+                        </nav>              
+                        <ul className="list-group my-2">
+                            {this.state.data.map((event, index) => (
+                                <li className="list-group-item" key={index} id={index}>
+                                    <div className="card-body">
+                                        <div className="row">
+                                            <div className="col-10">
+                                                <button className="btn btn-lg btn-outline-dark" onClick={(e) => this.openEventInfo(index + 1, e)}>{event.event_summary}</button>
+                                                <p className="card-text">Organizer: {event.event_org}</p>
+                                                <p className="card-text">Location: {event.event_location}</p>
+                                                <p className="card-text small">Date: {event.event_date}</p>
+                                            </div>
+                                            <div className="col-2">
+                                                <button className="btn btn-info m-2" onClick={(e) => this.openEditForm(index, e)} data-toggle="modal" data-target="#openEditFormForm">Edit</button>
+                                                <br/>
+                                                <button className="btn btn-danger m-2" onClick={(e) => this.deleteEvent(index, e)}>Delete</button>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="col-2">
-                                        <button className="btn btn-info m-2" onClick={(e) => this.openEditForm(index, e)} data-toggle="modal" data-target="#openEditFormForm">Edit</button>
-                                        <br/>
-                                        <button className="btn btn-danger m-2" onClick={(e) => this.deleteEvent(index, e)}>Delete</button>
-                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                        <nav className="container my-2">
+                            <button className="btn btn-primary" disabled={this.state.page === 1} onClick={this.lastPage}>&laquo;</button>
+                            <button className="btn btn-primary float-right" disabled={this.state.data.length < 10} onClick={this.nextPage}>&raquo;</button>
+                        </nav>
+                    </div>
+                    <div style={{display: this.state.selected === 0 ? 'none' : 'block', height: '100vh'}} >
+                        <div className="row h-100 bg-secondary">
+                            <div className="col-2 align-self-center text-center">
+                                <button className="btn" disabled={this.state.selected === 1} onClick={this.lastEvent}>
+                                    <svg width="100%" height="100%" viewBox="0 0 24 24">
+                                        <path d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z"></path>
+                                    </svg>
+                                </button>
+                                <button className="btn" onClick={this.closeEventInfo}>
+                                    <svg width="100%" height="100%" viewBox="0 0 24 24">
+                                        <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path>
+                                    </svg>
+                                </button>
+                                <button className="btn" disabled={this.state.selected === 10} onClick={this.nextEvent}>
+                                    <svg width="100%" height="100%" viewBox="0 0 24 24">
+                                        <path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="col-10 bg-light">
+                                <Event currentEvent={this.state.currentEvent} userId={this.props.userId}></Event>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="modal fade" role="dialog" id="openEditFormForm">
+                        <div className="modal-dialog" role="document">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">{`${this.state.focusEdit} Event`}</h5>
+                                    <button type="button" className="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div className="modal-body">
+                                    <form>
+                                        <div className="form-group">
+                                            <label htmlFor="summary">Summary</label>
+                                            <textarea type="text" name="summary" id="summary" className="form-control" placeholder="Summary" rows="2" value={this.state.currentEvent.event_summary} onChange={this.handleChange}></textarea>
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="org">Organizer</label>
+                                            <textarea type="text" name="org" id="org" className="form-control" placeholder="Organizer" rows="2" value={this.state.currentEvent.event_org} onChange={this.handleChange}></textarea>
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="date">Date</label>
+                                            <textarea type="text" name="date" id="date" className="form-control" placeholder="15 July 2020" rows="2" value={this.state.currentEvent.event_date} onChange={this.handleChange}></textarea>
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="loc">Location</label>
+                                            <textarea type="text" name="loc" id="loc" className="form-control" placeholder="Location" rows="2" value={this.state.currentEvent.event_location} onChange={this.handleChange}></textarea>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-primary" onClick={this.submitEvent} data-dismiss="modal">Save changes</button>
+                                    <button type="button" className="btn btn-secondary" data-dismiss="modal">Close</button>
                                 </div>
                             </div>
-                        </li>
-                    ))}
-                </ul>
-                <nav className="container my-2">
-                    <button className="btn btn-primary" disabled={this.state.page === 1} onClick={this.lastPage}>&laquo;</button>
-                    <button className="btn btn-primary float-right" disabled={this.state.data.length < 10} onClick={this.nextPage}>&raquo;</button>
-                </nav>
-            </div>
-            <div style={{display: this.state.selected === 0 ? 'none' : 'block', height: '100vh'}} >
-                <div className="row h-100 bg-secondary">
-                    <div className="col-2 align-self-center text-center">
-                        <button className="btn" disabled={this.state.selected === 1} onClick={this.lastEvent}>
-                            <svg width="100%" height="100%" viewBox="0 0 24 24">
-                                <path d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z"></path>
-                            </svg>
-                        </button>
-                        <button className="btn" onClick={this.closeEventInfo}>
-                            <svg width="100%" height="100%" viewBox="0 0 24 24">
-                                <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path>
-                            </svg>
-                        </button>
-                        <button className="btn" disabled={this.state.selected === 10} onClick={this.nextEvent}>
-                            <svg width="100%" height="100%" viewBox="0 0 24 24">
-                                <path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path>
-                            </svg>
-                        </button>
-                    </div>
-                    <div className="col-10 bg-light">
-                        <Event currentEvent={this.state.currentEvent} userId={this.props.userId}></Event>
-                    </div>
-                </div>
-            </div>
-            <div className="modal fade" role="dialog" id="openEditFormForm">
-                <div className="modal-dialog" role="document">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h5 className="modal-title">{`${this.state.focusEdit} Event`}</h5>
-                            <button type="button" className="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            <form>
-                                <div className="form-group">
-                                    <label htmlFor="summary">Summary</label>
-                                    <textarea type="text" name="summary" id="summary" className="form-control" placeholder="Summary" rows="2" value={this.state.currentEvent.event_summary} onChange={this.handleChange}></textarea>
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="org">Organizer</label>
-                                    <textarea type="text" name="org" id="org" className="form-control" placeholder="Organizer" rows="2" value={this.state.currentEvent.event_org} onChange={this.handleChange}></textarea>
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="date">Date</label>
-                                    <textarea type="text" name="date" id="date" className="form-control" placeholder="15 July 2020" rows="2" value={this.state.currentEvent.event_date} onChange={this.handleChange}></textarea>
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="loc">Location</label>
-                                    <textarea type="text" name="loc" id="loc" className="form-control" placeholder="Location" rows="2" value={this.state.currentEvent.event_location} onChange={this.handleChange}></textarea>
-                                </div>
-                            </form>
-                        </div>
-                        <div className="modal-footer">
-                            <button type="button" className="btn btn-primary" onClick={this.submitEvent} data-dismiss="modal">Save changes</button>
-                            <button type="button" className="btn btn-secondary" data-dismiss="modal">Close</button>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>)
-    };
+                </div>)
+            };
+        }
 }
 
 

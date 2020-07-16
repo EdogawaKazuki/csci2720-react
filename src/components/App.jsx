@@ -1,7 +1,7 @@
 import React from 'react';
-import './NavBar';
 import NavBar from './NavBar';
 import Main from './Main';
+import { Redirect } from 'react-router-dom'
 
 class Header extends React.Component{
   render(){
@@ -16,12 +16,16 @@ class Header extends React.Component{
 
 class App extends React.Component{
   render(){
-    return (
-      <div className="App">
-        <Header/>
-        <Main userId={1}/>
-      </div>
-    )
+    if(sessionStorage.getItem('LoginStatus') === 'true'){
+      return (
+        <div className="App">
+          <Header/>
+          <Main userId={1}/>
+        </div>
+      )
+    }else{
+      return <Redirect to ='/Login'/>
+    }
   }
 }
 
