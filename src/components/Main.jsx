@@ -93,7 +93,7 @@ class Main extends React.Component{
     openEventInfo(index, e){
         if(index !== 0 ){
             console.log('event')
-            let path = `/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}/keyword/${this.state.searchField}::${this.state.searchQuery}/${index}`;
+            let path = `/event/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}/keyword/${this.state.searchField}::${this.state.searchQuery}/${index}`;
             if(this.props.history.location.pathname !== path){
                 this.props.history.location.pathname = path;
                 window.history.pushState({},'state', path);
@@ -103,8 +103,17 @@ class Main extends React.Component{
                 currentEvent: this.state.data[index - 1],
             });
         }else{
-            this.setState({selected: 0})
-            let path = `/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}/keyword/${this.state.searchField}::${this.state.searchQuery}`;
+            this.setState({
+                selected: 0,
+                currentEvent: {
+                    event_summary: '',
+                    event_org: '',
+                    event_date: '',
+                    event_location: '',
+                    event_id: -1,
+                }
+            })
+            let path = `/event/page/${this.state.page}/sortBy/${this.state.sortMode}${this.state.sortType}/keyword/${this.state.searchField}::${this.state.searchQuery}`;
             this.props.history.location.pathname = path;
             window.history.pushState({},'state',path);
         }

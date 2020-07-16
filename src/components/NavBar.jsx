@@ -5,7 +5,7 @@ class NavBar extends React.Component{
   constructor(props){
     super(props);
     this.state = {
-      username: sessionStorage.getItem('username')
+      username: sessionStorage.getItem('userName')
     };
     this.logOut = this.logOut.bind(this)
   };
