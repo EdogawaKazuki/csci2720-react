@@ -1,5 +1,6 @@
 import React from 'react';
 import { Redirect } from 'react-router-dom'
+import APIHost from '../config'
 
 class NavBar extends React.Component{
   constructor(props){
@@ -10,7 +11,7 @@ class NavBar extends React.Component{
     this.logOut = this.logOut.bind(this)
   };
   logOut(){
-    fetch(`http://localhost:9000/index/logout`, {credentials: 'include' })
+    fetch(`${APIHost}/index/logout`, {credentials: 'include' })
         .then(res => res.json())
         .then(result=>{
             sessionStorage.setItem('LoginStatus', false)

@@ -1,7 +1,7 @@
 import React from 'react'
 import Event from './Event'
 import { withRouter, Redirect } from 'react-router-dom'
-
+import APIHost from '../config'
 
 class Main extends React.Component{
     constructor(props){
@@ -70,7 +70,7 @@ class Main extends React.Component{
             window.history.pushState({},'state', path);
         }
         window.scrollTo(0, 0)
-        await fetch(`http://localhost:9000/api/events/page/${page}/sortBy/${sortMode}${sortType}/keyword/${searchField}::${searchQuery}`, {credentials: 'include'})
+        await fetch(`${APIHost}/api/events/page/${page}/sortBy/${sortMode}${sortType}/keyword/${searchField}::${searchQuery}`, {credentials: 'include'})
             .then(res => res.json())
             .then((result) => {
                 console.log(result)
@@ -204,7 +204,7 @@ class Main extends React.Component{
         let eventId = currentEvent.event_id;
         console.log(eventId);
         //console.log(requestOptions)
-        fetch(`http://localhost:9000/api/event/${eventId}`, {method: 'DELETE', credentials: 'include' })
+        fetch(`${APIHost}/api/event/${eventId}`, {method: 'DELETE', credentials: 'include' })
             .then(res => res.json())
             .then(result => {
                 //console.log(result)
@@ -242,7 +242,7 @@ class Main extends React.Component{
             credentials: 'include' 
         };
         console.log(requestOptions)
-        fetch(`http://localhost:9000/api/event`, requestOptions)
+        fetch(`${APIHost}/api/event`, requestOptions)
             .then(res => res.json())
             .then(result => {
                 //console.log(result)
@@ -251,7 +251,7 @@ class Main extends React.Component{
     };
     async flushData(){
         this.setState({flushing: true})
-        await fetch(`http://localhost:9000/api/event`, {credentials: 'include' })
+        await fetch(`${APIHost}/api/event`, {credentials: 'include' })
             .then(res => res.json())
             .then(result => {
                 //console.log(result)

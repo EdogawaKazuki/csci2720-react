@@ -1,5 +1,6 @@
 import React from 'react'
 import { Redirect } from 'react-router-dom'
+import APIHost from '../config'
 
 
 class Event extends React.Component{
@@ -37,7 +38,7 @@ class Event extends React.Component{
         }
     }
     getCommentList(page){
-        fetch(`http://localhost:9000/api/comments/eventId/${this.props.currentEvent.event_id}/page/${page}`, {credentials: 'include'})
+        fetch(`${APIHost}/api/comments/eventId/${this.props.currentEvent.event_id}/page/${page}`, {credentials: 'include'})
             .then(res => res.json())
             .then((result) => {
                 this.setState({
@@ -83,7 +84,7 @@ class Event extends React.Component{
             credentials: 'include'
         };
         //console.log(requestOptions)
-        fetch(`http://localhost:9000/api/comments`, requestOptions)
+        fetch(`${APIHost}/api/comments`, requestOptions)
             .then(res => res.json())
             .then(result => {
                 //console.log(result)
@@ -94,7 +95,7 @@ class Event extends React.Component{
     deleteComment(commentId){
         console.log(commentId);
         //console.log(requestOptions)
-        fetch(`http://localhost:9000/api/comments/${commentId}`, {method: 'DELETE', credentials: 'include'})
+        fetch(`${APIHost}/api/comments/${commentId}`, {method: 'DELETE', credentials: 'include'})
             .then(res => res.json())
             .then(result => {
                 //console.log(result)

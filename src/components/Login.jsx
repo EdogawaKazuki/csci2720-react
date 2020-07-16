@@ -1,5 +1,6 @@
 import React from 'react';
 import { Redirect } from 'react-router-dom';
+import APIHost from '../config'
 
 class Login extends React.Component{
     constructor(props){
@@ -12,6 +13,7 @@ class Login extends React.Component{
         this.handleChange = this.handleChange.bind(this);
     };
     login(){
+        console.log(APIHost)
         if(this.state.email && this.state.password){
             let requestOptions = {
                 method: 'POST',
@@ -22,7 +24,7 @@ class Login extends React.Component{
                     }),
                 credentials: 'include'
             };
-            fetch(`http://localhost:9000/index/login`, requestOptions)
+            fetch(`${APIHost}/index/login`, requestOptions)
                 .then(res => res.json())
                 .then(result=>{
                     console.log(result);
