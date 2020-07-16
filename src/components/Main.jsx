@@ -54,7 +54,6 @@ class Main extends React.Component{
         if(state.page !== this.state.page ||
             state.sortType !== this.state.sortType ||
             state.sortMode !== this.state.sortMode ||
-            state.searchQuery !== this.state.searchQuery ||
             state.searchField !== this.state.searchField){
             console.log(state, this.state)
             await this.getEventList(state.page, state.sortType, state.sortMode, state.searchField, state.searchQuery)
