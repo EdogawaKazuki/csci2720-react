@@ -308,7 +308,6 @@ class Main extends React.Component{
         }else{
             return(
                 <div>
-                    <button className="btn btn-info ml-2 my-2 my-sm-0" type="button" onClick={this.showFavorite}>My Favorites</button>
                     <nav className="navbar navbar-light navbar-expand bg-light">
                         <form className="form-inline input-group mr-2" onSubmit={this.doSearch}>
                             <div className="input-group-prepend mr-2">
@@ -346,6 +345,7 @@ class Main extends React.Component{
                             </ul>
                             <button className="btn btn-primary mr-2" onClick={this.openEditForm} data-toggle="modal" data-target="#openEditFormForm">New Event</button>
                             <button className="btn btn-success" onClick={this.flushData} disabled={this.state.flushing}>{this.state.flushing? <span className="spinner-border spinner-border-sm"></span> : ''} Flush Data</button>
+                            <button className="btn btn-info ml-2 my-2 my-sm-0" type="button" onClick={this.showFavorite}>My Favorites</button>
                         </nav>              
                         <ul className="list-group my-2">
                             {this.state.data.map((event, index) => (

@@ -126,6 +126,7 @@ class Event extends React.Component{
                 <div className="card-body">
                     <h3 className="card-title">{this.props.currentEvent.event_summary}</h3>
                     <button className="btn btn-danger m-2 float-right" onClick={this.likeEvent}>Like</button>
+                    <p className="card-text">Id: {this.props.currentEvent.event_id}</p>
                     <p className="card-text">Organizer: {this.props.currentEvent.event_org}</p>
                     <p className="card-text">Location: {this.props.currentEvent.event_location}</p>
                     <p className="card-text small">Date: {this.props.currentEvent.event_date}</p>
