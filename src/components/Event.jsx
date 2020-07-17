@@ -19,6 +19,7 @@ class Event extends React.Component{
         this.lastPage = this.lastPage.bind(this);
         this.addComment = this.addComment.bind(this);
         this.deleteComment = this.deleteComment.bind(this);
+        this.likeEvent = this.likeEvent.bind(this);
     };
     componentDidMount(){
         if(this.props.currentEvent.length){
@@ -103,7 +104,18 @@ class Event extends React.Component{
             });
     };
     likeEvent(){
-        
+        let requestOptions={
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({eventId: this.props.currentEvent.event_id}),
+            credentials: 'include'
+        }
+        fetch(`${APIHost}/api/favorite`,requestOptions)
+            .then(res=>res.json())
+            .then(result=>{
+                console.log(result);
+                alert(result.msg);
+            })
     }
     render(){
         if(sessionStorage.getItem('LoginStatus') === 'false'){

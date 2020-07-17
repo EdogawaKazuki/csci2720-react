@@ -8,7 +8,9 @@ class Main extends React.Component{
         super(props);
         this.state = {
             selected: 0,
+            favorite: 0,
             data: [],
+            list:[],
             currentEvent: {},
             page: 1,
             sortType: 'event_summary',
@@ -30,6 +32,7 @@ class Main extends React.Component{
         this.openEditForm = this.openEditForm.bind(this);
         this.submitEvent = this.submitEvent.bind(this);
         this.flushData = this.flushData.bind(this);
+        this.showFavorite = this.showFavorite.bind(this);
     };
     parse(url){
         let params = url.split('/');
@@ -264,12 +267,48 @@ class Main extends React.Component{
         await this.getEventList(1);
         this.setState({flushing: false})
     };
+    showFavorite(){
+        console.log("show favorite");
+        fetch(`${APIHost}/api/favorite`,{credentials: 'include'})
+            .then(res=>res.json())
+            .then(result=>{
+                console.log(result);
+                this.setState({
+                    favorite: 1,
+                    list: result
+                });
+            }
+        )
+    };
+
+    deleteFavorite(index){
+        console.log("delete favorite");
+        let currentEvent = this.state.list[index]
+        let eventId = currentEvent.event_id;
+        console.log(eventId);
+        //console.log(requestOptions)
+        fetch(`${APIHost}/api/favorite/eventId/${eventId}`, {method: 'DELETE', credentials: 'include' })
+            .then(res => res.json())
+            .then(result => {
+                console.log(result)
+                this.showFavorite();
+            });
+    }
+    closeFavorite(){
+        console.log("close favorite");
+        this.setState({
+            favorite:0,
+            list:[]
+        })
+    }
+
     render(){
         if(sessionStorage.getItem('LoginStatus') === 'false'){
             return <Redirect to='/login' />
         }else{
             return(
                 <div>
+                    <button className="btn btn-info ml-2 my-2 my-sm-0" type="button" onClick={this.showFavorite}>My Favorites</button>
                     <nav className="navbar navbar-light navbar-expand bg-light">
                         <form className="form-inline input-group mr-2" onSubmit={this.doSearch}>
                             <div className="input-group-prepend mr-2">
@@ -286,7 +325,7 @@ class Main extends React.Component{
                             </div>
                         </form>
                     </nav>
-                    <div style={{display: this.state.selected === 0 ? 'block' : 'none'}}>
+                    <div style={{display: (this.state.selected === 0 && this.state.favorite === 0) ? 'block' : 'none'}}>
                         <nav className="navbar navbar-light navbar-expand bg-light justify-content-end">
                             <span className="small mr-2">Sort By</span>
                             <ul className="navbar-nav mr-2">
@@ -334,7 +373,7 @@ class Main extends React.Component{
                             <button className="btn btn-primary float-right" disabled={this.state.data.length < 10} onClick={this.nextPage}>&raquo;</button>
                         </nav>
                     </div>
-                    <div style={{display: this.state.selected === 0 ? 'none' : 'block', height: '100vh'}} >
+                    <div style={{display: this.state.selected > 0 ? 'block' : 'none', height: '100vh'}} >
                         <div className="row h-100 bg-secondary">
                             <div className="col-2 align-self-center text-center">
                                 <button className="btn" disabled={this.state.selected === 1} onClick={this.lastEvent}>
@@ -357,6 +396,29 @@ class Main extends React.Component{
                                 <Event currentEvent={this.state.currentEvent} userId={this.props.userId}></Event>
                             </div>
                         </div>
+                    </div>
+                    <div style = {{display: this.state.favorite > 0 ? 'block' : 'none'}}>
+                        <ul className="list-group my-2">
+                            {this.state.list.map((event, index) => (
+                                <li className="list-group-item" key={index} id={index}>
+                                    <div className="card-body">
+                                        <div className="row">
+                                            <div className="col-10">
+                                                <button className="btn btn-lg btn-outline-dark" onClick={(e) => this.openEventInfo(index + 1, e)}>{event.event_summary}</button>
+                                                <p className="card-text">Organizer: {event.event_org}</p>
+                                                <p className="card-text">Location: {event.event_location}</p>
+                                                <p className="card-text small">Date: {event.event_date}</p>
+                                            </div>
+                                            <div className="col-2">
+                                                <br/>
+                                                <button className="btn btn-danger m-2" onClick={(e) => this.deleteFavorite(index)}>Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                        <button className="btn btn-info m-2" onClick={(e) => this.closeFavorite()}>Back</button>
                     </div>
                     <div className="modal fade" role="dialog" id="openEditFormForm">
                         <div className="modal-dialog" role="document">
